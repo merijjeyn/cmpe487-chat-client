@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
 import json
+from network import Network
 
 
 
@@ -28,7 +29,7 @@ left_column = [
 
 # For now will only show the name of the file that was chosen
 right_column = [
-    [sg.Text(size=(40, 40), text='hello\nmy name is meric', background_color='white', text_color='black', key='-CHAT BOX-')], 
+    [sg.Text(size=(40, 40), text='', background_color='white', text_color='black', key='-CHAT BOX-')], 
     [
         sg.Input(enable_events=True, key='-MESSAGE INPUT-'),
         sg.Button(button_text='SEND',enable_events=True, key='-SEND BUTTON-')
@@ -46,42 +47,38 @@ layout = [
 
 window = sg.Window("MeChat", layout)
 
+# Initialize network element
+network = Network()
+
 # Run the Event Loop
 while True:
     event, values = window.read()
-    print('Event: ', event, 'Values: ', values)
 
-    # Check active users and update gui accordingly
-    active_user_file = open('active_users.json')
-    active_users = json.loads(active_user_file.read())
-    window['-PERSON-'].update(active_users)
-    active_user_file.close()
-
-    # Check the conversation of the selected person
-    if values['-PERSON-']:
-        filename = 'conv_' + values['-PERSON-'][0] + '.json'
-        f = open(filename)
-        convArr = json.loads(f.read())
-        f.close()
-        convString = convParser(convArr)
-        print(convString)
-        window['-CHAT BOX-'].update(convString)
-
-    
-        
     # Handle events
-
     if event == "Exit" or event == sg.WIN_CLOSED:
         break
     
     if event == '-SEND BUTTON-':
-        newMessage = values['-MESSAGE INPUT-']
-        newText = window['-CHAT BOX-'].get() + '\n' + newMessage
-        window['-CHAT BOX-'].update(newText)
+        body = values['-MESSAGE INPUT-']
+        receiver = values['-PERSON-'][0]
+        receiverIp = network.getIpFromName(receiver)
+        network.sendMessage(receiverIp, body)
 
-    # elif event == '-PERSON-':
+
+    # Check active users and update gui accordingly
+    with open('active_users.json', 'r') as f:
+        active_users = json.loads(f.read())
+        window['-PERSON-'].update(active_users.keys())
 
 
+    # Check the conversation of the selected person
+    if values['-PERSON-']:
+        with open('conversations.json', 'r') as f:
+            conversations = json.loads(f.read())
+            convArr = conversations[values['-PERSON-'][0]]
+            convString = convParser(convArr)
+            window['-CHAT BOX-'].update(convString)
     
+        
 
 window.close()
