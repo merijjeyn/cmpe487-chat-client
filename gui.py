@@ -3,7 +3,6 @@ import json
 from network import Network
 
 
-
 def convParser(convArr):
     result = ''
     for s in convArr:
@@ -50,9 +49,14 @@ window = sg.Window("MeChat", layout)
 # Initialize network element
 network = Network()
 
+lastChosen = ''
 # Run the Event Loop
 while True:
     event, values = window.read()
+
+    # Update last chosen
+    if values['-PERSON-']:
+        lastChosen = values['-PERSON-'][0]
 
     # Handle events
     if event == "Exit" or event == sg.WIN_CLOSED:
@@ -60,24 +64,32 @@ while True:
     
     if event == '-SEND BUTTON-':
         body = values['-MESSAGE INPUT-']
-        receiver = values['-PERSON-'][0]
+        receiver = lastChosen
         receiverIp = network.getIpFromName(receiver)
         network.sendMessage(receiverIp, body)
 
 
     # Check active users and update gui accordingly
-    with open('active_users.json', 'r') as f:
-        active_users = json.loads(f.read())
-        window['-PERSON-'].update(active_users.keys())
+    try:
+        with open('active_users.json', 'r') as f:
+            active_users = json.loads(f.read())
+    except:
+        active_users = {}
+    
+    window['-PERSON-'].update(active_users.keys())
 
 
     # Check the conversation of the selected person
-    if values['-PERSON-']:
+    if lastChosen:
         with open('conversations.json', 'r') as f:
-            conversations = json.loads(f.read())
-            convArr = conversations[values['-PERSON-'][0]]
-            convString = convParser(convArr)
-            window['-CHAT BOX-'].update(convString)
+            try:
+                conversations = json.loads(f.read())
+            except:
+                conversations = {}
+            if lastChosen in conversations:
+                convArr = conversations[lastChosen]
+                convString = convParser(convArr)
+                window['-CHAT BOX-'].update(convString)
     
         
 
